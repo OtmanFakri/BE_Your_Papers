@@ -1,0 +1,49 @@
+services:
+  traefik:
+    image: traefik:v2.5
+    container_name: traefik-cloudscoup
+    command:
+      - --api.insecure=true
+      - --providers.docker
+      - --entrypoints.web.address=:80
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fastapi.rule=Host(`fastapi.localhost`)"
+      - "traefik.http.routers.fastapi.entrypoints=web"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - USER_DB=${USER_DB}
+      - HOST=${HOST}
+      - PASSWORD_DB=${PASSWORD_DB}
+      - DB_NAME=${DB_NAME}
+      - HOST_SSH=${HOST_SSH}
+      - USER_SSH=${USER_SSH}
+      - PASS_SSH=${PASS_SSH}
+    volumes:
+      - .:/app
+    depends_on:
+      - traefik
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+#  reactjs:
+#    build:
+#      context: ./react-app
+#      dockerfile: Dockerfile
+#    container_name: reactjs-cloudscoup
+#    labels:
+#      - "traefik.enable=true"
+#      - "traefik.http.routers.reactjs.rule=Host(`reactjs.localhost`)"
+#      - "traefik.http.routers.reactjs.entrypoints=web"
+#    depends_on:
+#      - traefik
